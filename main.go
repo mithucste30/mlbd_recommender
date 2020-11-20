@@ -15,8 +15,8 @@ limitations under the License.
 */
 package main
 
-// import "github.com/mithucste30/recommender/cmd"
+//import "github.com/mithucste30/mlbd_recommender/app/cmd"
 
 func main() {
-	// cmd.Execute()
+	//cmd.Execute()
 }
