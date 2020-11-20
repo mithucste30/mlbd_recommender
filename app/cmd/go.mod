@@ -1,9 +1,9 @@
-module github.com/mithucste30/mlbd_recommender/app
+module github.com/mithucste30/mlbd_recommender/app/cmd
 
 go 1.14
 
 require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/spf13/cobra v1.1.1
-	github.com/spf13/viper v1.7.0
+	github.com/spf13/viper v1.7.1
 )
