@@ -1,4 +1,4 @@
-module github.com/mithucste30/mlbd_recommender
+module github.com/mithucste30/mlbd_recommender/app
 
 go 1.14
 
