@@ -1,0 +1,22 @@
+version: "2"
+volumes:
+  go:
+
+services:
+  redis:
+    image: redis
+
+  app:
+    build:
+      context: ""
+    command: "/bin/bash"
+    depends_on:
+      - redis
+    links:
+      - redis:redis
+    volumes:
+    - go:/go
+    - $PWD:/usr/src/app
+    tty: true
+    ports:
+    - 8000:8000
