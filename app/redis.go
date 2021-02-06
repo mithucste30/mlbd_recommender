@@ -7,13 +7,14 @@ import (
 )
 
 func NewRedis(url string) (Repository, error)  {
-	conn, err := redis.DialURL(url)
+	connUrl := "redis://"+url+"/0"
+	conn, err := redis.DialURL(connUrl)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
 	}
 
-	redisRec, _ := redrec.New(url)
+	redisRec, _ := redrec.New(connUrl)
 
 	rr := &RedisRepository{
 		conn: conn,
