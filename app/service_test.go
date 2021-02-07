@@ -6,18 +6,14 @@ import (
 	"testing"
 )
 
-type Connection interface {
-	Close()
-}
-
-func initService() (RecommenderService, *miniredis.Miniredis) {
+func initService() (IRecommenderService, *miniredis.Miniredis) {
 	MRedis, err := miniredis.Run()
 	if err != nil {
 		panic(err)
 	}
-	var repo Repository
-	repo, _ = NewRedis(MRedis.Addr())
-	return RecommenderServiceImpl{}.New(repo), MRedis
+	var repo IRepository
+	repo, _ = NewRedisRepository(MRedis.Addr())
+	return NewRecommenderService(repo), MRedis
 }
 
 func TestRecommenderServiceImpl_Rate(t *testing.T) {
@@ -66,7 +62,7 @@ func TestRecommenderServiceImpl_BatchUpdate(t *testing.T) {
 	svc.Rate("2", "6", 3.5)
 	svc.Rate("6", "6", 4.2)
 
-	error := svc.BatchUpdate(100)
+	error := svc.BatchUpdate(9223372036854775806)
 
 	if error != nil {
 		t.Error("Batch update failed, reason: ", error.Error())
@@ -106,7 +102,7 @@ func TestRecommenderServiceImpl_GetProbability(t *testing.T) {
 	svc.Rate("2", "6", 3.5)
 	svc.Rate("6", "6", 4.2)
 
-	error := svc.BatchUpdate(100)
+	error := svc.BatchUpdate(9223372036854775806)
 
 	if error != nil {
 		t.Error("Batch update failed, reason: ", error.Error())

@@ -12,10 +12,15 @@ import (
 var errBadRoute = errors.New("bad route")
 
 func Serve(port int, redisHost string) {
-	var repo Repository
-	repo, _ = NewRedis(redisHost)
-	var svc RecommenderService
-	svc = RecommenderServiceImpl{}.New(repo)
+	var err error
+	var repo IRepository
+	repo, err = NewRedisRepository(redisHost)
+	var svc IRecommenderService
+	svc = NewRecommenderService(repo)
+	if err != nil {
+		log.Fatalf("Failed to initialize service, reason: %v", err.Error())
+		return
+	}
 	rateHandler := kitHttp.NewServer(makeRateEndpoint(svc), decodeRateRequest, encodeResponse)
 	suggestedItemsHandler := kitHttp.NewServer(makeSuggestedItemsEndpoint(svc), decodeSuggestedItemsRequest, encodeResponse)
 	r := mux.NewRouter()

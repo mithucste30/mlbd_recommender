@@ -7,13 +7,13 @@ import (
 )
 
 func BatchUpdate(port int, redisHost string)  {
-	var repo Repository
-	repo, _ = NewRedis(redisHost)
+	var repo IRepository
+	repo, err := NewRedisRepository(redisHost)
 
-	var svc RecommenderService
-	svc = RecommenderServiceImpl{}.New(repo)
-	err := svc.BatchUpdate(-1) // lets batchUpdate all users.
-	chekErrorAndExit(repo.Conn(), err)
+	var svc IRecommenderService
+	svc = NewRecommenderService(repo)
+	err = svc.BatchUpdate(-1) // lets batchUpdate all users.
+	chekErrorAndExit(*repo.Conn(), err)
 }
 
 func chekErrorAndExit(conn redis.Conn, err error) {

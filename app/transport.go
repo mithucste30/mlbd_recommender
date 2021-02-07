@@ -3,17 +3,12 @@ package app
 import (
 	"context"
 	"encoding/json"
-	validator "github.com/asaskevich/govalidator"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
 	"net/http"
 )
 
-func init() {
-	validator.SetFieldsRequiredByDefault(true)
-}
-
-func makeRateEndpoint(svc RecommenderService) endpoint.Endpoint  {
+func makeRateEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(rateRequest)
 		err = svc.Rate(req.User, req.Item, req.Score)
@@ -24,7 +19,7 @@ func makeRateEndpoint(svc RecommenderService) endpoint.Endpoint  {
 	}
 }
 
-func makeSuggestedItemsEndpoint(svc RecommenderService) endpoint.Endpoint  {
+func makeSuggestedItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(suggestedItemsRequest)
 

@@ -3,13 +3,13 @@ package app
 import (
 	"errors"
 	"fmt"
+	"github.com/RedisLabs/redis-recommend/redrec"
 	"github.com/garyburd/redigo/redis"
 )
 
 var ErrInvalidArgument = errors.New("invalid/missing argument")
 
-type RecommenderService interface {
-	New(repo Repository) RecommenderService
+type IRecommenderService interface {
 	Rate(item string, user string, score float64) error
 	GetRecommendedItems(user string, count int) ([]string, error)
 	GetUserItems(user string, max int)([]string, error)
@@ -19,42 +19,44 @@ type RecommenderService interface {
 	//SuggestedItems(user string, max int)([]string, error)
 	//SimilarItems(item string, max int)([]string, error)
 	//TopItems(user string, max int)([]string, error)
-	//AddNewUser(user string) error
 }
 
-type RecommenderServiceImpl struct {
-	repo Repository
+type RecommenderService struct {
+	conn redis.Conn
+	recommender *redrec.Redrec
 }
 
-func (svc RecommenderServiceImpl) UpdateSuggestedItems(user string, max int) error {
-	return svc.repo.Recommender().UpdateSuggestedItems(user, max);
+func (svc RecommenderService) UpdateSuggestedItems(user string, max int) error {
+	return svc.recommender.UpdateSuggestedItems(user, max);
 }
 
-func (RecommenderServiceImpl) New(repo Repository) RecommenderService {
-	return RecommenderServiceImpl{
-		repo: repo,
+func NewRecommenderService(repo IRepository) IRecommenderService {
+	recommender, _ := redrec.New(repo.ConnUrl())
+	return RecommenderService{
+		conn: *repo.Conn(),
+		recommender: recommender,
 	}
 }
 
-func (svc RecommenderServiceImpl) GetProbability(user string, item string) (float64, error){
-	return svc.repo.Recommender().CalcItemProbability(item, user)
+func (svc RecommenderService) GetProbability(user string, item string) (float64, error){
+	return svc.recommender.CalcItemProbability(item, user)
 }
 
-func (svc RecommenderServiceImpl) Rate(item string, user string, score float64) error  {
+func (svc RecommenderService) Rate(item string, user string, score float64) error  {
 	if user == "" || item == "" || score == 0 {
 		return ErrInvalidArgument
 	}
-	return svc.repo.Recommender().Rate(item, user, score)
+	return svc.recommender.Rate(item, user, score)
 }
 
-func (svc RecommenderServiceImpl) GetRecommendedItems(user string, count int)([]string, error)  {
+func (svc RecommenderService) GetRecommendedItems(user string, count int)([]string, error)  {
 	if user == "" || count == 0 {
 		return nil, ErrInvalidArgument
 	}
 
 	svc.UpdateSuggestedItems(user, count);
 
-	response, err := svc.repo.Recommender().GetUserSuggestions(user, count)
+	response, err := svc.recommender.GetUserSuggestions(user, count)
 	if err != nil {
 		return nil, err
 	}
@@ -65,20 +67,20 @@ func (svc RecommenderServiceImpl) GetRecommendedItems(user string, count int)([]
 	return items, nil
 }
 
-func (svc RecommenderServiceImpl) GetUserItems(user string, max int) ([]string, error)  {
+func (svc RecommenderService) GetUserItems(user string, max int) ([]string, error)  {
 	if user == "" || max == 0 {
 		return nil, ErrInvalidArgument
 	}
-	items, err := redis.Strings(svc.repo.Conn().Do("ZREVRANGE", fmt.Sprintf("user:%s:items", user), 0, max))
+	items, err := redis.Strings(svc.conn.Do("ZREVRANGE", fmt.Sprintf("user:%s:items", user), 0, max))
 	if err != nil {
 		return nil, err
 	}
 	return items, nil
 }
 
-func (svc RecommenderServiceImpl) BatchUpdate(max int) error {
+func (svc RecommenderService) BatchUpdate(max int) error {
 	if max == 0 {
 		return ErrInvalidArgument
 	}
-	return svc.repo.Recommender().BatchUpdateSimilarUsers(max)
+	return svc.recommender.BatchUpdateSimilarUsers(max)
 }
