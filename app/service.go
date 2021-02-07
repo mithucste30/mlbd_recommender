@@ -15,6 +15,7 @@ type RecommenderService interface {
 	GetUserItems(user string, max int)([]string, error)
 	BatchUpdate(max int) error
 	UpdateSuggestedItems(user string, max int) error
+	GetProbability(user string, item string) (float64, error)
 	//SuggestedItems(user string, max int)([]string, error)
 	//SimilarItems(item string, max int)([]string, error)
 	//TopItems(user string, max int)([]string, error)
@@ -33,6 +34,10 @@ func (RecommenderServiceImpl) New(repo Repository) RecommenderService {
 	return RecommenderServiceImpl{
 		repo: repo,
 	}
+}
+
+func (svc RecommenderServiceImpl) GetProbability(user string, item string) (float64, error){
+	return svc.repo.Recommender().CalcItemProbability(item, user)
 }
 
 func (svc RecommenderServiceImpl) Rate(item string, user string, score float64) error  {
