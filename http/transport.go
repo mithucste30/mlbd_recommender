@@ -1,15 +1,16 @@
-package app
+package http
 
 import (
 	"context"
 	"encoding/json"
 	"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
+	"github.com/mithucste30/mlbd_recommender/app"
 	"net/http"
 	"strconv"
 )
 
-func makeRateEndpoint(svc IRecommenderService) endpoint.Endpoint  {
+func makeRateEndpoint(svc app.IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(rateRequest)
 		err = svc.Rate(req.Item, req.User, req.Score)
@@ -20,10 +21,10 @@ func makeRateEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	}
 }
 
-func makeSuggestedItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
+func makeSuggestedItemsEndpoint(svc app.IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(suggestedItemsRequest)
-		count := MaxNumber
+		count := app.MaxNumber
 		if req.Count != 0 {
 			count = req.Count
 		}
@@ -35,10 +36,10 @@ func makeSuggestedItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	}
 }
 
-func makeUserItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
+func makeUserItemsEndpoint(svc app.IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(userItemsRequest)
-		fetchCount := MaxNumber
+		fetchCount := app.MaxNumber
 		if req.Count != 0 {
 			fetchCount = req.Count
 		}
@@ -120,7 +121,7 @@ func decodeUserItemsRequest(_ context.Context, r *http.Request) (interface{}, er
 func encodeError(_ context.Context, err error, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	switch err {
-	case ErrInvalidArgument:
+	case app.ErrInvalidArgument:
 		w.WriteHeader(http.StatusBadRequest)
 	default:
 		w.WriteHeader(http.StatusInternalServerError)

@@ -16,7 +16,7 @@ limitations under the License.
 package cmd
 
 import (
-	"github.com/mithucste30/mlbd_recommender/app"
+	"github.com/mithucste30/mlbd_recommender/http"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +27,7 @@ var (
 		Short: "Run recommender http server",
 		Long: ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			app.Serve(Port, RedisHost, Doc)
+			http.Serve(Port, RedisHost, Doc)
 		},
 	}
 )

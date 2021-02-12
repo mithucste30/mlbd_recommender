@@ -1,4 +1,4 @@
-package app
+package http
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"github.com/go-kit/kit/log"
 	kitHttp "github.com/go-kit/kit/transport/http"
 	"github.com/gorilla/mux"
+	"github.com/mithucste30/mlbd_recommender/app"
 	"net/http"
 	"os"
 	"time"
@@ -16,17 +17,17 @@ var errBadRoute = errors.New("bad route")
 func Serve(port int, redisHost string, doc bool) {
 	logger := log.NewLogfmtLogger(os.Stdout)
 	logger = log.With(logger, "listen", port, "caller", log.DefaultCaller)
-	repo, err := NewRedisRepository(redisHost)
+	repo, err := app.NewRedisRepository(redisHost)
 	if err != nil {
 		log.With(logger, "Failed to initialize repository, reason:", err.Error())
 		return
 	}
-	svc, err := NewRecommenderService(repo)
+	svc, err := app.NewRecommenderService(repo)
 	if err != nil {
 		log.With(logger, "Failed to initialize service, reason: ", err.Error())
 		return
 	}
-	svc = loggingMiddleware(logger)(svc)
+	svc = app.LoggingMiddleware(logger)(svc)
 	rateHandler := kitHttp.NewServer(makeRateEndpoint(svc), decodeRateRequest, encodeResponse)
 	suggestedItemsHandler := kitHttp.NewServer(makeSuggestedItemsEndpoint(svc), decodeSuggestedItemsRequest, encodeResponse)
 	userItemsHandler := kitHttp.NewServer(makeUserItemsEndpoint(svc), decodeUserItemsRequest, encodeResponse)
@@ -36,7 +37,7 @@ func Serve(port int, redisHost string, doc bool) {
 	r.Handle("/api/users/{user}/suggestions", suggestedItemsHandler).Methods("GET")
 	r.Handle("/api/users/{user}/items", userItemsHandler).Methods("GET")
 	if doc == true {
-		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("doc/dist"))))
+		r.PathPrefix("/").Handler(http.StripPrefix("/", http.FileServer(http.Dir("doc/swaggerUI"))))
 	}
 	http := &http.Server{
 		Handler: r,

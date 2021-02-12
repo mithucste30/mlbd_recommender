@@ -2,7 +2,7 @@ package app
 
 import "github.com/go-kit/kit/log"
 
-func loggingMiddleware(logger log.Logger) ServiceMiddleware {
+func LoggingMiddleware(logger log.Logger) ServiceMiddleware {
 	return func(next IRecommenderService) IRecommenderService {
 		return logmw{logger, next}
 	}
