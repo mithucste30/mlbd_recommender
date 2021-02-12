@@ -23,14 +23,16 @@ func initService() (IRecommenderService, *miniredis.Miniredis) {
 func TestRecommenderServiceImpl_Rate(t *testing.T) {
 	svc, conn := initService()
 	defer conn.Close()
-	svc.Rate("1", "1", 4.5)
-	svc.Rate("2", "1", 3.5)
-	svc.Rate("3", "1", 4.2)
-	svc.Rate("1", "2", 4.2)
+	err := svc.Rate("1", "1", 4.5)
+	err = svc.Rate("2", "1", 3.5)
+	err = svc.Rate("3", "1", 4.2)
+	err = svc.Rate("1", "2", 4.2)
 
-	user1Items, _ := svc.GetUserItems("1", 100)
-	user2Items, _ := svc.GetUserItems("2", 100)
-
+	user1Items, err := svc.GetUserItems("1", 100)
+	user2Items, err := svc.GetUserItems("2", 100)
+	if err != nil {
+		panic(err)
+	}
 	if len(user1Items) != 3 {
 		t.Error(fmt.Sprintf("User1 Expected To have 3 items, got %v", len(user1Items)))
 	}
@@ -47,29 +49,33 @@ func TestRecommenderServiceImpl_GetUserItems(t *testing.T) {
 func TestRecommenderServiceImpl_BatchUpdate(t *testing.T) {
 	svc, conn := initService()
 	defer conn.Close()
-	svc.Rate("1", "1", 4.2)
-	svc.Rate("2", "1", 4.2)
-	svc.Rate("3", "1", 4.2)
-	svc.Rate("1", "2", 3.2)
-	svc.Rate("2", "2", 3.5)
-	svc.Rate("3", "2", 4.2)
-	svc.Rate("1", "3", 3.2)
-	svc.Rate("2", "3", 3.5)
-	svc.Rate("3", "3", 4.2)
-	svc.Rate("1", "4", 3.2)
-	svc.Rate("2", "4", 3.5)
-	svc.Rate("7", "4", 4.2)
-	svc.Rate("1", "5", 3.2)
-	svc.Rate("2", "5", 3.5)
-	svc.Rate("5", "5", 4.2)
-	svc.Rate("1", "6", 3.2)
-	svc.Rate("2", "6", 3.5)
-	svc.Rate("6", "6", 4.2)
+	err := svc.Rate("1", "1", 4.2)
+	err = svc.Rate("2", "1", 4.2)
+	err = svc.Rate("3", "1", 4.2)
+	err = svc.Rate("1", "2", 3.2)
+	err = svc.Rate("2", "2", 3.5)
+	err = svc.Rate("3", "2", 4.2)
+	err = svc.Rate("1", "3", 3.2)
+	err = svc.Rate("2", "3", 3.5)
+	err = svc.Rate("3", "3", 4.2)
+	err = svc.Rate("1", "4", 3.2)
+	err = svc.Rate("2", "4", 3.5)
+	err = svc.Rate("7", "4", 4.2)
+	err = svc.Rate("1", "5", 3.2)
+	err = svc.Rate("2", "5", 3.5)
+	err = svc.Rate("5", "5", 4.2)
+	err = svc.Rate("1", "6", 3.2)
+	err = svc.Rate("2", "6", 3.5)
+	err = svc.Rate("6", "6", 4.2)
 
-	error := svc.BatchUpdate(MaxNumber)
+	if err != nil {
+		panic(err)
+	}
 
-	if error != nil {
-		t.Error("Batch update failed, reason: ", error.Error())
+	err = svc.BatchUpdate(MaxNumber)
+
+	if err != nil {
+		t.Error("Batch update failed, reason: ", err.Error())
 		return
 	}
 
@@ -92,29 +98,33 @@ func TestRecommenderServiceImpl_GetRecommendedItems(t *testing.T) {
 func TestRecommenderServiceImpl_GetProbability(t *testing.T) {
 	svc, conn := initService()
 	defer conn.Close()
-	svc.Rate("1", "1", 4.2)
-	svc.Rate("2", "1", 4.2)
-	svc.Rate("3", "1", 4.2)
-	svc.Rate("1", "2", 3.2)
-	svc.Rate("2", "2", 3.5)
-	svc.Rate("3", "2", 4.2)
-	svc.Rate("1", "3", 3.2)
-	svc.Rate("2", "3", 3.5)
-	svc.Rate("3", "3", 4.2)
-	svc.Rate("1", "4", 3.2)
-	svc.Rate("2", "4", 3.5)
-	svc.Rate("7", "4", 4.2)
-	svc.Rate("1", "5", 3.2)
-	svc.Rate("2", "5", 3.5)
-	svc.Rate("5", "5", 4.2)
-	svc.Rate("1", "6", 3.2)
-	svc.Rate("2", "6", 3.5)
-	svc.Rate("6", "6", 4.2)
+	err := svc.Rate("1", "1", 4.2)
+	err = svc.Rate("2", "1", 4.2)
+	err = svc.Rate("3", "1", 4.2)
+	err = svc.Rate("1", "2", 3.2)
+	err = svc.Rate("2", "2", 3.5)
+	err = svc.Rate("3", "2", 4.2)
+	err = svc.Rate("1", "3", 3.2)
+	err = svc.Rate("2", "3", 3.5)
+	err = svc.Rate("3", "3", 4.2)
+	err = svc.Rate("1", "4", 3.2)
+	err = svc.Rate("2", "4", 3.5)
+	err = svc.Rate("7", "4", 4.2)
+	err = svc.Rate("1", "5", 3.2)
+	err = svc.Rate("2", "5", 3.5)
+	err = svc.Rate("5", "5", 4.2)
+	err = svc.Rate("1", "6", 3.2)
+	err = svc.Rate("2", "6", 3.5)
+	err = svc.Rate("6", "6", 4.2)
 
-	error := svc.BatchUpdate(9223372036854775806)
+	if err != nil {
+		panic(err)
+	}
 
-	if error != nil {
-		t.Error("Batch update failed, reason: ", error.Error())
+	err = svc.BatchUpdate(9223372036854775806)
+
+	if err != nil {
+		t.Error("Batch update failed, reason: ", err.Error())
 		return
 	}
 
