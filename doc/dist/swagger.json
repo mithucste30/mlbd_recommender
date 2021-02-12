@@ -1,0 +1,168 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "description": "",
+    "version": "",
+    "title": "Simple Recommder"
+  },
+  "host": "localhost:8000",
+  "basePath": "/",
+  "tags": [
+    {
+      "name": "rating",
+      "description": "Rate any item for a user"
+    },
+    {
+      "name": "recommendation",
+      "description": "Get the recommended items for a user"
+    }
+  ],
+  "schemes": [
+    "http"
+  ],
+  "paths": {
+    "/api/rate": {
+      "post": {
+        "tags": [
+          "rating"
+        ],
+        "summary": "Add rating of a item for a user",
+        "operationId": "addRate",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "body",
+            "name": "body",
+            "description": "Pet object that needs to be added to the store",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/Rate"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/SuccessfulResponse"
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "schema": {
+              "$ref": "#/definitions/RatingInvalidInput"
+            }
+          }
+        },
+        "security": [
+          {
+            "petstore_auth": [
+              "write:pets",
+              "read:pets"
+            ]
+          }
+        ]
+      }
+    },
+    "/api/users/{user}/suggestions": {
+      "get": {
+        "tags": [
+          "recommendation"
+        ],
+        "summary": "Get the recommended items for a user",
+        "description": "",
+        "operationId": "getRecommendation",
+        "consumes": [
+          "application/json"
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user",
+            "description": "User identifier",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "successful operation",
+            "schema": {
+              "$ref": "#/definitions/ItemsResponse"
+            }
+          }
+        },
+        "security": [
+          {
+            "petstore_auth": [
+              "write:pets",
+              "read:pets"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "Rate": {
+      "type": "object",
+      "required": [
+        "name",
+        "photoUrls"
+      ],
+      "properties": {
+        "user": {
+          "type": "string",
+          "example": "user_22231"
+        },
+        "item": {
+          "type": "string",
+          "example": "book_25678"
+        },
+        "score": {
+          "type": "number",
+          "format": "float64",
+          "example": 3.25
+        }
+      }
+    },
+    "SuccessfulResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "example": "successful"
+        }
+      }
+    },
+    "RatingInvalidInput": {
+      "type": "object",
+      "properties": {
+        "error": {
+          "type": "string",
+          "example": "invalid/missing parameter"
+        }
+      }
+    },
+    "ItemsResponse": {
+      "type": "object",
+      "properties": {
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "example": ["book", "foo", "bar"]
+        }
+      }
+    }
+  }
+}

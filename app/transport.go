@@ -6,12 +6,13 @@ import (
 	"github.com/go-kit/kit/endpoint"
 	"github.com/gorilla/mux"
 	"net/http"
+	"strconv"
 )
 
 func makeRateEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(rateRequest)
-		err = svc.Rate(req.User, req.Item, req.Score)
+		err = svc.Rate(req.Item, req.User, req.Score)
 		if err != nil {
 			return err, nil
 		}
@@ -22,18 +23,30 @@ func makeRateEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 func makeSuggestedItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
 		req := request.(suggestedItemsRequest)
-
-		suggestedItems, err := svc.GetRecommendedItems(req.User, -1)
+		count := MaxNumber
+		if req.Count != 0 {
+			count = req.Count
+		}
+		suggestedItems, err := svc.GetRecommendedItems(req.User, count)
 		if err != nil {
-			return nil, err
+			return err, nil
 		}
-		results :=  make([]string, len(suggestedItems))
-		start := req.Page * req.Per
-		end := start + req.Per
-		for i := start; i < end; i++ {
-			results = append(results, suggestedItems[i])
+		return suggestedItemsResponse{Items: suggestedItems}, nil
+	}
+}
+
+func makeUserItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
+	return func(ctx context.Context, request interface{}) (response interface{}, err error) {
+		req := request.(userItemsRequest)
+		fetchCount := MaxNumber
+		if req.Count != 0 {
+			fetchCount = req.Count
 		}
-		return suggestedItemsResponse{Items: results}, nil
+		userItems, err := svc.GetUserItems(req.User, fetchCount)
+		if err != nil {
+			return err, nil
+		}
+		return userItemsResponse{Items: userItems}, nil
 	}
 }
 
@@ -48,12 +61,21 @@ type rateResponse struct {
 }
 
 type suggestedItemsRequest struct {
-	User string `json:"user"`
-	Page int `json:"page"`
-	Per  int `json:"per"`
+	User string
+	Count int
+}
+
+type userItemsRequest struct {
+	User string
+	Count int
 }
 
 type suggestedItemsResponse struct {
+	Error error `json:"err,omitempty"`
+	Items []string `json:"items"`
+}
+
+type userItemsResponse struct {
 	Error error `json:"err,omitempty"`
 	Items []string `json:"items"`
 }
@@ -68,11 +90,30 @@ func decodeRateRequest(_ context.Context, r *http.Request) (interface{}, error) 
 
 func decodeSuggestedItemsRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
-	id, ok := vars["id"]
+	user, ok := vars["user"]
 	if !ok {
 		return nil, errBadRoute
 	}
-	return suggestedItemsRequest{User: id}, nil
+	if countParam, ok := vars["count"]; ok {
+		if count, err := strconv.Atoi(countParam); err == nil {
+			return suggestedItemsRequest{User: user, Count: count}, nil
+		}
+	}
+	return suggestedItemsRequest{User: user}, nil
+}
+
+func decodeUserItemsRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+	vars := mux.Vars(r)
+	user, ok := vars["user"]
+	if !ok {
+		return nil, errBadRoute
+	}
+	if countParam, ok := vars["count"]; ok {
+		if count, err := strconv.Atoi(countParam); err == nil {
+			return userItemsRequest{User: user, Count: count}, nil
+		}
+	}
+	return userItemsRequest{User: user}, nil
 }
 
 

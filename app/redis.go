@@ -11,8 +11,7 @@ type RedisRepository struct {
 }
 
 func NewRedisRepository(connUrl string) (IRepository, error)  {
-	url := "redis://"+connUrl+"/0"
-	conn, err := redis.DialURL(url)
+	conn, err := redis.DialURL(connUrl)
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil, err
@@ -20,7 +19,7 @@ func NewRedisRepository(connUrl string) (IRepository, error)  {
 
 	return &RedisRepository{
 		conn: &conn,
-		url: url,
+		url: connUrl,
 	}, nil
 }
 

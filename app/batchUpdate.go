@@ -11,7 +11,7 @@ func BatchUpdate(port int, redisHost string)  {
 	repo, err := NewRedisRepository(redisHost)
 
 	var svc IRecommenderService
-	svc = NewRecommenderService(repo)
+	svc, err = NewRecommenderService(repo)
 	err = svc.BatchUpdate(-1) // lets batchUpdate all users.
 	chekErrorAndExit(*repo.Conn(), err)
 }

@@ -27,7 +27,7 @@ var (
 		Short: "Run recommender http server",
 		Long: ``,
 		Run: func(cmd *cobra.Command, args []string) {
-			app.Serve(Port, RedisHost)
+			app.Serve(Port, RedisHost, Doc)
 		},
 	}
 )

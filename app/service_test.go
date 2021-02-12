@@ -12,8 +12,12 @@ func initService() (IRecommenderService, *miniredis.Miniredis) {
 		panic(err)
 	}
 	var repo IRepository
-	repo, _ = NewRedisRepository(MRedis.Addr())
-	return NewRecommenderService(repo), MRedis
+	repo, _ = NewRedisRepository("redis://"+MRedis.Addr()+"/0")
+	svc, err := NewRecommenderService(repo)
+	if err != nil {
+		panic(err)
+	}
+	return svc, MRedis
 }
 
 func TestRecommenderServiceImpl_Rate(t *testing.T) {
@@ -62,7 +66,7 @@ func TestRecommenderServiceImpl_BatchUpdate(t *testing.T) {
 	svc.Rate("2", "6", 3.5)
 	svc.Rate("6", "6", 4.2)
 
-	error := svc.BatchUpdate(9223372036854775806)
+	error := svc.BatchUpdate(MaxNumber)
 
 	if error != nil {
 		t.Error("Batch update failed, reason: ", error.Error())
@@ -71,7 +75,12 @@ func TestRecommenderServiceImpl_BatchUpdate(t *testing.T) {
 
 	user1Items, err := svc.GetRecommendedItems("1", 100)
 
-	if err == nil && len(user1Items) != 3 {
+	if err != nil {
+		t.Errorf("Get recommended items failed: %v", err.Error())
+		return
+	}
+
+	if len(user1Items) != 3 {
 		t.Errorf("User 1 expected to have 3 recommended items got: %v", len(user1Items))
 	}
 }
