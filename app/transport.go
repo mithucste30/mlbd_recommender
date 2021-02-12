@@ -51,7 +51,7 @@ func makeUserItemsEndpoint(svc IRecommenderService) endpoint.Endpoint  {
 }
 
 type rateRequest struct {
-	User string `json:"user", valid:"required"`
+	User string `json:"user"`
 	Item string `json:"item"`
 	Score float64 `json:"score"`
 }
@@ -102,7 +102,7 @@ func decodeSuggestedItemsRequest(_ context.Context, r *http.Request) (interface{
 	return suggestedItemsRequest{User: user}, nil
 }
 
-func decodeUserItemsRequest(ctx context.Context, r *http.Request) (interface{}, error) {
+func decodeUserItemsRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	vars := mux.Vars(r)
 	user, ok := vars["user"]
 	if !ok {
@@ -117,7 +117,7 @@ func decodeUserItemsRequest(ctx context.Context, r *http.Request) (interface{}, 
 }
 
 
-func encodeError(_ context.Context, err error, w http.ResponseWriter) {
+func encodeError(_ context.Context, err error, w http.ResponseWriter) error {
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	switch err {
 	case ErrInvalidArgument:
@@ -125,14 +125,20 @@ func encodeError(_ context.Context, err error, w http.ResponseWriter) {
 	default:
 		w.WriteHeader(http.StatusInternalServerError)
 	}
-	json.NewEncoder(w).Encode(map[string]interface{}{
+	encodeErr := json.NewEncoder(w).Encode(map[string]interface{}{
 		"error": err.Error(),
 	})
+	if encodeErr != nil{
+		return encodeErr
+	}
+	return nil
 }
 
 func encodeResponse(ctx context.Context, w http.ResponseWriter, response interface{}) error {
 	if e, ok := response.(error); ok {
-		encodeError(ctx, e, w)
+		if err := encodeError(ctx, e, w); err != nil {
+			return err
+		}
 		return nil
 	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")

@@ -3,7 +3,6 @@ package app
 import (
 	"errors"
 	"fmt"
-	"github.com/RedisLabs/redis-recommend/redrec"
 	"github.com/garyburd/redigo/redis"
 	"math"
 	"strconv"
@@ -27,21 +26,33 @@ type ServiceMiddleware func(IRecommenderService) IRecommenderService
 
 type RecommenderService struct {
 	conn redis.Conn
-	recommender *redrec.Redrec
 }
 
 func (svc RecommenderService) UpdateSuggestedItems(user string, max int) error {
-	return svc.updateSuggestedItems(user, max);
+	items, err := svc.getSuggestCandidates(user, max)
+	if max > len(items) {
+		max = len(items)
+	}
+
+	var args []interface{}
+	args = append(args, fmt.Sprintf("user:%s:suggestions", user))
+	for _, item := range items {
+		probability, _ := svc.calcItemProbability(user, item)
+		args = append(args, probability)
+		args = append(args, item)
+	}
+	if len(args) > 1 {
+		_, err = svc.conn.Do("ZADD", args...)
+		if err != nil {
+			return errors.New(fmt.Sprintf("ZADD ERR1: %v", err))
+		}
+	}
+	return nil
 }
 
 func NewRecommenderService(repo IRepository) (IRecommenderService, error) {
-	recommender, err := redrec.New(repo.ConnUrl())
-	if err != nil {
-		return nil, err
-	}
 	return RecommenderService{
 		conn: *repo.Conn(),
-		recommender: recommender,
 	}, nil
 }
 
@@ -53,7 +64,21 @@ func (svc RecommenderService) Rate(item string, user string, score float64) erro
 	if user == "" || item == "" || score == 0 {
 		return ErrInvalidArgument
 	}
-	return svc.recommender.Rate(item, user, score)
+	_, err := svc.conn.Do("ZADD", fmt.Sprintf("user:%s:items", user), score, item)
+	if err != nil {
+		return err
+	}
+
+	_, err = svc.conn.Do("ZADD", fmt.Sprintf("item:%s:scores", item), score, user)
+	if err != nil {
+		return err
+	}
+
+	_, err = svc.conn.Do("SADD", "users", user)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func (svc RecommenderService) GetRecommendedItems(user string, count int)([]string, error)  {
@@ -66,7 +91,7 @@ func (svc RecommenderService) GetRecommendedItems(user string, count int)([]stri
 		return nil, err
 	}
 
-	err = svc.UpdateSuggestedItems(user, count);
+	err = svc.UpdateSuggestedItems(user, count)
 	if err != nil {
 		return nil, err
 	}
@@ -97,25 +122,13 @@ func (svc RecommenderService) BatchUpdate(max int) error {
 	if max == 0 {
 		return ErrInvalidArgument
 	}
-	return svc.batchUpdateSimilarUsers(max)
-}
-
-func (svc RecommenderService) getUserSuggestions(user string, max int) ([]string, error) {
-	items, err := redis.Strings(svc.conn.Do("ZREVRANGE", fmt.Sprintf("user:%s:suggestions", user), 0, max, "WITHSCORES"))
-	if err != nil {
-		return nil, err
-	}
-	return items, nil
-}
-
-func (svc RecommenderService) batchUpdateSimilarUsers(max int) error  {
 	users, err := redis.Strings(svc.conn.Do("SMEMBERS", "users"))
 	if err != nil {
 		return err
 	}
 	for _, user := range users {
 		candidates, err := svc.getSimilarityCandidates(user, max)
-		args := []interface{}{}
+		var args []interface{}
 		args = append(args, fmt.Sprintf("user:%s:similars", user))
 		for _, candidate := range candidates {
 			if candidate != user {
@@ -134,26 +147,12 @@ func (svc RecommenderService) batchUpdateSimilarUsers(max int) error  {
 	return nil
 }
 
-func (svc RecommenderService) updateSuggestedItems(user string, max int) error {
-	items, err := svc.getSuggestCandidates(user, max)
-	if max > len(items) {
-		max = len(items)
+func (svc RecommenderService) getUserSuggestions(user string, max int) ([]string, error) {
+	items, err := redis.Strings(svc.conn.Do("ZREVRANGE", fmt.Sprintf("user:%s:suggestions", user), 0, max, "WITHSCORES"))
+	if err != nil {
+		return nil, err
 	}
-
-	args := []interface{}{}
-	args = append(args, fmt.Sprintf("user:%s:suggestions", user))
-	for _, item := range items {
-		probability, _ := svc.calcItemProbability(user, item)
-		args = append(args, probability)
-		args = append(args, item)
-	}
-	if len(args) > 1 {
-		_, err = svc.conn.Do("ZADD", args...)
-		if err != nil {
-			return errors.New(fmt.Sprintf("ZADD ERR1: %v", err))
-		}
-	}
-	return nil
+	return items, nil
 }
 
 func (svc RecommenderService) getSimilarityCandidates(user string, max int) ([]string, error)  {
@@ -162,7 +161,7 @@ func (svc RecommenderService) getSimilarityCandidates(user string, max int) ([]s
 		max = len(items)
 	}
 
-	args := []interface{}{}
+	var args []interface{}
 	args = append(args, "ztmp", float64(max))
 	for i := 0; i < max; i++ {
 		args = append(args, fmt.Sprintf("item:%s:scores", items[i]))
@@ -194,7 +193,7 @@ func (svc RecommenderService) calcSimilarity(user string, simuser string) (float
 	}
 
 	userDiffs, err := redis.Strings(svc.conn.Do("ZRANGE", "ztmp", 0, -1, "WITHSCORES"))
-	svc.conn.Do("DEL", "ztmp")
+	_, err = svc.conn.Do("DEL", "ztmp")
 	if err != nil {
 		return 0, err
 	}
@@ -221,9 +220,9 @@ func (svc RecommenderService) getSuggestCandidates(user string, max int) ([]stri
 	}
 
 	max = len(similarUsers)
-	args := []interface{}{}
+	var args []interface{}
 	args = append(args, "ztmp", float64(max+1), fmt.Sprintf("user:%s:items", user))
-	weights := []interface{}{}
+	var weights []interface{}
 	weights = append(weights, "WEIGHTS", -1.0)
 	for _, simuser := range similarUsers {
 		args = append(args, fmt.Sprintf("user:%s:items", simuser))
@@ -258,7 +257,7 @@ func (svc RecommenderService) calcItemProbability(user string, item string) (flo
 	}
 
 	scores, err := redis.Strings(svc.conn.Do("ZRANGE", "ztmp", 0, -1, "WITHSCORES"))
-	svc.conn.Do("DEL", "ztmp")
+	_, err = svc.conn.Do("DEL", "ztmp")
 	if err != nil {
 		return 0, err
 	}

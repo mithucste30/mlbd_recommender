@@ -14,18 +14,27 @@ type logmw struct {
 }
 
 func (mw logmw) Rate(item string, user string, score float64) error  {
-	mw.logger.Log("method", "rate", "user", user, "item", item, "score", score);
+	err := mw.logger.Log("method", "rate", "user", user, "item", item, "score", score)
+	if err != nil{
+		return err
+	}
 	return mw.IRecommenderService.Rate(item, user, score)
 }
 
 func (mw logmw) GetRecommendedItems(user string, count int) ([]string, error)  {
-	mw.logger.Log("method", "GetRecommendedItems", "user", user, "count", count);
-	return mw.IRecommenderService.GetRecommendedItems(user, count);
+	err := mw.logger.Log("method", "GetRecommendedItems", "user", user, "count", count)
+	if err != nil{
+		return nil, err
+	}
+	return mw.IRecommenderService.GetRecommendedItems(user, count)
 }
 
 func (mw logmw) GetUserItems(user string, count int) ([]string, error)  {
-	mw.logger.Log("method", "GetRecommendedItems", "user", user, "count", count);
-	return mw.IRecommenderService.GetUserItems(user, count);
+	err := mw.logger.Log("method", "GetRecommendedItems", "user", user, "count", count)
+	if err != nil{
+		return nil, err
+	}
+	return mw.IRecommenderService.GetUserItems(user, count)
 }
 
 
